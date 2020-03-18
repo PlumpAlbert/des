@@ -1,4 +1,5 @@
 #include "des.h"
+
 #include "colors.h"
 
 const unsigned char START_IP_TABLE[64] = {
@@ -25,11 +26,11 @@ unsigned char swap_bits(unsigned char x, char i, char j) {
 }
 
 unsigned long start_ip(unsigned long block) {
-  long result = 0;
-  for (int i = 0; i < sizeof(START_IP_TABLE); ++i) {
-    if (TestBit(block, 64, START_IP_TABLE[i])) {
+  unsigned long result = 0;
+  for (int i = 1; i <= sizeof(START_IP_TABLE); ++i) {
+    if (TestBit(block, 64, START_IP_TABLE[i - 1])) {
       SetBit(result, 64, i);
-      // printf("->\tIP[%d]: BLOCK[%d] -> %016lx\n", i, START_IP_TABLE[i],
+      // printf("->\tIP[%d]: BLOCK[%d] -> %016lx\n", i, START_IP_TABLE[i - 1],
       // result);
     } else
       ClearBit(result, 64, i);
@@ -38,11 +39,12 @@ unsigned long start_ip(unsigned long block) {
 }
 
 unsigned long end_ip(unsigned long block) {
-  long result = 0;
-  for (int i = 0; i < sizeof(END_IP_TABLE); ++i) {
-    if (TestBit(block, 64, END_IP_TABLE[i])) {
+  unsigned long result = 0;
+  for (int i = 1; i <= sizeof(END_IP_TABLE); ++i) {
+    if (TestBit(block, 64, END_IP_TABLE[i - 1])) {
       SetBit(result, 64, i);
-      // printf("->\tIP[%d]: BLOCK[%d] -> %016lx\n", i, END_IP_TABLE[i], result);
+      // printf("->\tIP[%d]: BLOCK[%d] -> %016lx\n", i, END_IP_TABLE[i - 1],
+      // result);
     } else
       ClearBit(result, 64, i);
   }
@@ -50,37 +52,57 @@ unsigned long end_ip(unsigned long block) {
 }
 
 unsigned long cycle(unsigned long prev) {
-  printf("Prev = %016lx\n", prev);
+  // printf("Prev = %016lx\n", prev);
   long L = prev >> 32;
-  printf("L\t = %08lx\n", L);
+  // printf("L\t = %08lx\n", L);
   int R = prev;
-  printf("R\t =         %08x\n", R);
+  // printf("R\t =         %08x\n", R);
   // R = R ^ feistel(prev[1], key);
   return (L << 32) | R;
 }
 
-unsigned char const* generate_key() {
-  FILE* pFile;
-  unsigned char* key = malloc(sizeof(unsigned char) * DES_KEY_LENGTH);
-
-  pFile = fopen("/dev/random", "r");
-  if (pFile == NULL) {
-    printf("Couldn't open /dev/random.\n\t => Check your privileges\n");
-    exit(2);
+unsigned long extend_key(unsigned char* key) {
+  unsigned long extended_key = 0;
+  char long_size = sizeof(unsigned long) * 8;
+  char char_size = sizeof(unsigned char) * 8;
+  for (char i = 1, j = 0, counter = 0; i <= long_size; ++i) {
+    if (i % char_size == 0) {
+      if (counter % 2 == 1)
+        ClearBit(extended_key, long_size, i);
+      else
+        SetBit(extended_key, long_size, i);
+      counter = 0;
+      continue;
+    }
+    if (TestBit(key[j / char_size], char_size, (j % char_size + 1))) {
+      // printf("%s-> Key[%d][%d] = %08x%s\n", MAGENTA, j / char_size,
+      //        j % char_size, key[j / char_size], RESET);
+      SetBit(extended_key, long_size, i);
+      counter++;
+    } else
+      ClearBit(extended_key, long_size, i);
+    ++j;
   }
-  fgets(key, DES_KEY_LENGTH, pFile);
-  fclose(pFile);
-  return key;
+  // printf("%sExtended key: %016lx%s\n", GREEN, extended_key, RESET);
+  return extended_key;
 }
 
-unsigned long encrypt(unsigned long data) {
+unsigned long encrypt(unsigned long data, unsigned char* key) {
   data = start_ip(data);
-  unsigned char const* key = generate_key();
-  
+  unsigned long ek = extend_key(key);
   for (char i = 0; i < 16; ++i) {
-    printf("%s-> Cycle #%d%s\n", GREEN, i + 1, RESET);
+    // printf("%s-> Cycle #%d%s\n", GREEN, i + 1, RESET);
     data = cycle(data);
-    printf("\n"); 
+    // printf("\n");
   }
   return end_ip(data);
+}
+
+char count_set_bits(char n) {
+  char counter = 0;
+  while (n) {
+    counter += n & 1;
+    n >>= 1;
+  }
+  return counter;
 }
