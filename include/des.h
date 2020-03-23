@@ -12,11 +12,10 @@
 
 #define DES_KEY_LENGTH 7
 
-unsigned char swap_bits(unsigned char x, char i, char j);
-
 unsigned long start_ip(unsigned long);
 unsigned long end_ip(unsigned long);
-unsigned long cycle(unsigned long);
-unsigned char* extend_key(unsigned char *key);
+unsigned long extend_key(unsigned char *key);
+unsigned char* getC0D0(unsigned long);
 unsigned char* generate_ki(unsigned char*, char);
+unsigned long cycle(unsigned long);
 unsigned long encrypt(unsigned long, unsigned char *);
