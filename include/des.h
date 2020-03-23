@@ -6,9 +6,9 @@
  * Sets k-th bit in A
  * @param n - size of A in bits
  */
-#define SetBit(A, n, k) A |= (1ul << (n - k))
-#define ClearBit(A, n, k) A &= ~(1ul << (n - k))
-#define TestBit(A, n, k) (A & (1ul << (n - k)))
+#define SetBit(A, n, k) A |= (1ul << (n - (k)))
+#define ClearBit(A, n, k) A &= ~(1ul << (n - (k)))
+#define TestBit(A, n, k) (A & (1ul << (n - (k))))
 
 #define DES_KEY_LENGTH 7
 
